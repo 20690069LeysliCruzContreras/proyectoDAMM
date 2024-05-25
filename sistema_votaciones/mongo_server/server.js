@@ -1,25 +1,31 @@
+const cors = require('cors');
 const express = require('express');
-   const mongoose = require('mongoose');
-   const cors = require('cors');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
 
-   const app = express();
-   const port = process.env.PORT || 5000;
+const authRoutes = require('./routes/auth');
+const pollRoutes = require('./routes/polls');
+const voteRoutes = require('./routes/votes');
 
-   app.use(cors());
-   app.use(express.json());
+const app = express();
 
-   const uri = "mongodb+srv://usley:140922USLEY@cluster0.domvtuq.mongodb.net/mydatabase?retryWrites=true&w=majority";
-   mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+app.use(cors());
+app.use(bodyParser.json());
 
-   const connection = mongoose.connection;
-   connection.once('open', () => {
-     console.log("MongoDB database connection established successfully");
-   });
+app.use('/auth', authRoutes);
+app.use('/polls', pollRoutes);
+app.use('/votes', voteRoutes);
 
-   app.get('/', (req, res) => {
-     res.send('Hello from MongoDB Server');
-   });
+mongoose.connect('mongodb+srv://usley:140922USLEY@cluster0.domvtuq.mongodb.net/mydatabase?retryWrites=true&w=majority', {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => {
+    console.log('Connected to MongoDB');
+}).catch(err => {
+    console.error('Failed to connect to MongoDB', err);
+});
 
-   app.listen(port, () => {
-     console.log(`Server is running on port: ${port}`);
-   });
+const port = process.env.PORT || 5000;
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});
