@@ -1,3 +1,4 @@
+3321
 const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
@@ -167,52 +168,7 @@ app.get('/active-votings', async (req, res) => {
     res.status(500).send('Error al obtener votaciones activas');
   }
 });
-/*
-// Ruta para obtener el historial de votaciones de un usuario
-app.get('/user-voting-history/:userId', async (req, res) => {
-  const userId = req.params.userId;
 
-  try {
-    // Verifica si el userId es un ObjectId válido
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ error: 'El ID de usuario no es válido' });
-    }
-
-    // Consulta para votaciones creadas por el usuario
-    const createdVotings = await Voting.find({ creator: userId });
-
-    // Consulta para votaciones donde el usuario ha votado
-    const votedVotings = await Voting.aggregate([
-      { $unwind: "$options" },
-      { $unwind: "$options.votes" },
-      // Busca votos donde el userId coincida con el ID de usuario proporcionado
-      { $match: { "options.votes.userId": new mongoose.Types.ObjectId(userId) } },
-      // Agrupa los resultados para formar el historial de votaciones
-      {
-        $group: {
-          _id: "$_id",
-          title: { $first: "$title" },
-          options: {
-            $push: {
-              text: "$options.text",
-              votes: "$options.votes",
-            },
-          },
-        },
-      },
-    ]);
-
-    // Combina ambas listas de votaciones y elimina duplicados si es necesario
-    const combinedVotings = [...createdVotings, ...votedVotings].filter((voting, index, self) =>
-      index === self.findIndex((v) => v._id.toString() === voting._id.toString())
-    );
-
-    res.status(200).json(combinedVotings);
-  } catch (error) {
-    console.error('Error al obtener el historial de votaciones:', error);
-    res.status(500).json({ error: 'Error al obtener el historial de votaciones' });
-  }
-});*/
 
 app.get('/user-voting-history/:userId', async (req, res) => {
   const userId = req.params.userId;
@@ -277,7 +233,21 @@ app.get('/user/:userId', async (req, res) => {
   }
 });
 
+app.get('/voting-updates', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
 
+  const onNewVoting = (voting) => {
+    res.write(`data: ${JSON.stringify(voting)}\n\n`);
+  };
+
+  newVotingEventEmitter.on('newVoting', onNewVoting);
+
+  req.on('close', () => {
+    newVotingEventEmitter.removeListener('newVoting', onNewVoting);
+  });
+});
 
 app.listen(port, () => {
   console.log(`Servidor escuchando en http://localhost:${port}`);
